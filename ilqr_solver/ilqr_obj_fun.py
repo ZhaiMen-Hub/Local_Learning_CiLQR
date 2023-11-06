@@ -45,10 +45,16 @@ class iLQRObjectiveFunction(object):
             add_param_var = sp.symbols("no_use")
         self._obj_fun_lamdify = njit(sp.lambdify([x_u_var,add_param_var], obj_fun, "numpy"))
         gradient_objective_function_array = sp.derive_by_array(obj_fun, x_u_var)
-        self._grad_obj_fun_lamdify = njit(sp.lambdify([x_u_var, add_param_var], gradient_objective_function_array,"numpy"))       
+        self._grad_obj_fun_lamdify = njit(sp.lambdify([x_u_var, add_param_var], gradient_objective_function_array, "numpy"))
         hessian_objective_function_array = sp.derive_by_array(gradient_objective_function_array, x_u_var)
         # A stupid method to ensure each element in the hessian matrix is in the type of float64
-        self._hessian_obj_fun_lamdify = njit(sp.lambdify([x_u_var, add_param_var], np.asarray(hessian_objective_function_array)+1e-100*np.eye(hessian_objective_function_array.shape[0]),"numpy"))
+        # self._hessian_obj_fun_lamdify = njit(sp.lambdify([x_u_var, add_param_var], hessian_objective_function_array), "numpy")
+        x = [x_u_var, add_param_var]
+        fx = np.asarray(hessian_objective_function_array)
+        fx += 1e-100*np.eye(hessian_objective_function_array.shape[0])
+        fx_sp = sp.Array(fx)
+        temp = sp.lambdify(args=x, expr=fx_sp, modules="numpy")
+        self._hessian_obj_fun_lamdify = njit(temp)
         self._add_param = add_param
 
     def eval_obj_fun(self, trajectory):
@@ -81,7 +87,8 @@ class iLQRObjectiveFunction(object):
         :return: Hessian matrix of the objective function
         :rtype: array(T, m+n, m+n) 
         """
-        return self._eval_hessian_obj_fun_static(self._hessian_obj_fun_lamdify, trajectory, self._add_param)
+        temp = self._eval_hessian_obj_fun_static(self._hessian_obj_fun_lamdify, trajectory, self._add_param)
+        return temp
 
     @staticmethod
     @njit

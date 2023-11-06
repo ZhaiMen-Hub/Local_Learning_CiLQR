@@ -5,7 +5,8 @@ import time as tm
 from scipy import io
 import os
 import torch
-import torch_optimizer as optim
+# import torch_optimizer as optim
+import torch.optim as optim
 from torch import Tensor, nn
 from .basic_ilqr import iLQRWrapper
 from utils.Logger import logger
